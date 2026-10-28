@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>간단한 사진 편집기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Allura&family=Courier+Prime:ital@0;1&family=Dancing+Script:wght@500;700&family=Great+Vibes&family=Homemade+Apple&family=Noto+Sans+KR:wght@400;500;700&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Sacramento&family=Satisfy&family=Tangerine:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand-logo" href="https://kmou.ac.kr" target="_blank" rel="noopener noreferrer" title="한국해양대학교 바로가기">
+      <img src="assets/kmou-logo.png" alt="한국해양대학교 로고" />
+    </a>
+    <h1 class="site-title">간단한 사진 편집기</h1>
+  </header>
+
+  <section class="format-bar" aria-label="지원 이미지 포맷">
+    <span class="format-label">사이즈 조정 가능 포맷</span>
+    <div class="format-icons" id="formatIcons"></div>
+  </section>
+
+  <main class="layout">
+    <aside class="panel files-panel">
+      <div class="panel-head">
+        <h2>업로드한 사진</h2>
+        <button type="button" class="btn ghost" id="btnAddMore">추가 업로드</button>
+      </div>
+      <div class="file-toolbar">
+        <label class="check"><input type="checkbox" id="chkAllFiles" /> 전체 선택</label>
+        <button type="button" class="btn danger-ghost" id="btnDeleteSelected">선택 삭제</button>
+      </div>
+      <ul class="file-list" id="fileList"></ul>
+      <div class="batch-actions">
+        <button type="button" class="btn primary" id="btnProcessAll">전체 작업 시작</button>
+        <button type="button" class="btn accent" id="btnZip" disabled>선택 파일 다운로드</button>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/*" multiple hidden />
+        <div class="dropzone-inner">
+          <div class="drop-art" aria-hidden="true">⬆</div>
+          <p class="drop-title">이미지 파일을 드래그 앤 드롭하세요</p>
+          <p class="drop-sub">또는 버튼을 눌러 폴더에서 여러 장을 한 번에 선택하세요</p>
+          <button type="button" class="btn primary lg" id="btnPick">파일 선택</button>
+        </div>
+      </div>
+
+      <div class="editor-wrap hidden" id="editorWrap">
+        <div class="canvas-toolbar">
+          <div class="history-btns">
+            <button type="button" class="btn ghost" id="btnUndo" title="뒤로가기">↩ 뒤로</button>
+            <button type="button" class="btn ghost" id="btnRedo" title="앞으로가기">앞으로 ↪</button>
+            <button type="button" class="btn ghost" id="btnCheckpoint">중간 저장</button>
+            <select id="checkpointSelect" aria-label="중간 저장 지점">
+              <option value="">저장된 지점…</option>
+            </select>
+            <button type="button" class="btn danger-ghost" id="btnReset">원상복구</button>
+          </div>
+          <div class="zoom-btns">
+            <button type="button" class="btn ghost" id="btnZoomOut">−</button>
+            <span id="zoomLabel">100%</span>
+            <button type="button" class="btn ghost" id="btnZoomIn">+</button>
+            <button type="button" class="btn ghost" id="btnZoomFit">맞춤</button>
+          </div>
+        </div>
+        <div class="size-hud">
+          <span>사진 크기</span>
+          <label>가로 <input type="number" id="hudW" min="1" /></label>
+          <span>×</span>
+          <label>세로 <input type="number" id="hudH" min="1" /></label>
+          <span>px</span>
+          <span class="size-origin" id="hudOrigin"></span>
+        </div>
+        <div class="canvas-stage" id="canvasStage">
+          <div class="photo-box" id="photoBox">
+            <canvas id="photoCanvas"></canvas>
+            <span class="handle" data-h="nw"></span>
+            <span class="handle" data-h="n"></span>
+            <span class="handle" data-h="ne"></span>
+            <span class="handle" data-h="e"></span>
+            <span class="handle" data-h="se"></span>
+            <span class="handle" data-h="s"></span>
+            <span class="handle" data-h="sw"></span>
+            <span class="handle" data-h="w"></span>
+            <div class="photo-size-tag" id="photoSizeTag">0 × 0 px</div>
+          </div>
+        </div>
+        <p class="hint" id="toolHint">사진 위 커서는 + 입니다. 선택/이동에서 사진을 드래그해 옮기고, 꼭짓점을 잡아 크기를 바꾸세요.</p>
+      </div>
+    </section>
+
+    <aside class="panel tools-panel" id="toolsPanel">
+      <section class="asset-board">
+        <div class="asset-board-head">
+          <h3>업로드 항목</h3>
+          <span class="asset-toast" id="assetToast"></span>
+        </div>
+        <p class="mini">올린 사진이 크게 보입니다. 카드를 누르면 그 사진을 편집하고, 스티커는 <b>사진에 넣기</b>로 올립니다.</p>
+        <div class="asset-cards" id="assetList"></div>
+      </section>
+      <nav class="tabs" id="toolTabs">
+        <button type="button" class="tab active" data-tab="size">크기</button>
+        <button type="button" class="tab" data-tab="adjust">보정</button>
+        <button type="button" class="tab" data-tab="filter">필터</button>
+        <button type="button" class="tab" data-tab="draw">그리기</button>
+        <button type="button" class="tab" data-tab="text">텍스트</button>
+        <button type="button" class="tab" data-tab="fx">효과</button>
+        <button type="button" class="tab" data-tab="more">더보기</button>
+      </nav>
+
+      <div class="tab-body" data-pane="size">
+        <h3>캔버스 비율</h3>
+        <div class="ratio-grid" id="ratioGrid">
+          <button type="button" class="chip active" data-ratio="free">원본</button>
+          <button type="button" class="chip" data-ratio="1:1">1:1</button>
+          <button type="button" class="chip" data-ratio="3:4">3:4</button>
+          <button type="button" class="chip" data-ratio="4:3">4:3</button>
+          <button type="button" class="chip" data-ratio="9:16">9:16</button>
+          <button type="button" class="chip" data-ratio="16:9">16:9</button>
+          <button type="button" class="chip" data-ratio="custom">커스텀</button>
+        </div>
+        <div class="row" id="customRatioRow">
+          <label>비율 가로 <input type="number" id="customRatioW" min="1" value="4" /></label>
+          <label>비율 세로 <input type="number" id="customRatioH" min="1" value="5" /></label>
+        </div>
+        <h3>맞춤 방식</h3>
+        <div class="seg" id="fitMode">
+          <button type="button" class="seg-btn active" data-fit="pad">Padding</button>
+          <button type="button" class="seg-btn" data-fit="crop">Crop</button>
+        </div>
+        <label class="row-label">패딩 색 <input type="color" id="padColor" value="#ffffff" /></label>
+        <h3>출력 크기</h3>
+        <div class="row">
+          <label>가로(px) <input type="number" id="targetW" min="1" placeholder="직접 입력" /></label>
+          <label>세로(px) <input type="number" id="targetH" min="1" placeholder="직접 입력" /></label>
+        </div>
+        <label class="check"><input type="checkbox" id="keepAspect" checked /> 비율 유지</label>
+        <button type="button" class="btn ghost" id="btnSizeReset">크기 초기화</button>
+        <h3>배경화면 크기</h3>
+        <select id="wallpaperPreset">
+          <option value="">선택 안 함</option>
+          <optgroup label="휴대폰">
+            <option value="1080x1920">FHD 세로 1080×1920</option>
+            <option value="1170x2532">iPhone 13/14 1170×2532</option>
+            <option value="1290x2796">iPhone 15 Pro 1290×2796</option>
+            <option value="1440x3200">QHD+ 세로 1440×3200</option>
+            <option value="1080x2340">일반 안드로이드 1080×2340</option>
+          </optgroup>
+          <optgroup label="컴퓨터">
+            <option value="1920x1080">FHD 1920×1080</option>
+            <option value="2560x1440">QHD 2560×1440</option>
+            <option value="3840x2160">4K 3840×2160</option>
+            <option value="1366x768">노트북 1366×768</option>
+            <option value="2560x1080">울트라와이드 2560×1080</option>
+          </optgroup>
+        </select>
+        <label class="check"><input type="checkbox" id="enhanceRes" /> 해상도 개선 (업스케일 + 선명)</label>
+        <h3>용량 줄이기</h3>
+        <label>품질 <input type="range" id="quality" min="40" max="100" value="92" /> <span id="qualityVal">92%</span></label>
+        <label class="check"><input type="checkbox" id="forceJpeg" /> JPEG로 저장해 용량 감소</label>
+      </div>
+
+      <div class="tab-body hidden" data-pane="adjust">
+        <label>밝기 <input type="range" id="brightness" min="-100" max="100" value="0" /></label>
+        <label>대비(라이트 밸런스) <input type="range" id="contrast" min="-100" max="100" value="0" /></label>
+        <label>노출 <input type="range" id="exposure" min="-100" max="100" value="0" /></label>
+        <label>하이라이트 <input type="range" id="highlights" min="-100" max="100" value="0" /></label>
+        <label>그림자 <input type="range" id="shadows" min="-100" max="100" value="0" /></label>
+        <label>채도 <input type="range" id="saturation" min="-100" max="100" value="0" /></label>
+        <label>색온도 <input type="range" id="temperature" min="-100" max="100" value="0" /></label>
+        <label>색조 <input type="range" id="tint" min="-100" max="100" value="0" /></label>
+        <label>선명도 <input type="range" id="sharpness" min="0" max="100" value="0" /></label>
+        <label>비네트 <input type="range" id="vignette" min="0" max="100" value="0" /></label>
+        <div class="row">
+          <label class="check"><input type="checkbox" id="grayscale" /> 흑백</label>
+          <label class="check"><input type="checkbox" id="invert" /> 반전</label>
+          <label class="check"><input type="checkbox" id="sepia" /> 세피아</label>
+        </div>
+        <p class="mini">기본값: 밝기·대비·채도 등 모두 0 (원본).</p>
+        <button type="button" class="btn ghost" id="btnAdjReset">보정 초기화</button>
+      </div>
+
+      <div class="tab-body hidden" data-pane="filter">
+        <div class="filter-grid" id="filterGrid"></div>
+        <button type="button" class="btn ghost" id="btnFilterReset">필터 초기화 (원본)</button>
+      </div>
+
+      <div class="tab-body hidden" data-pane="draw">
+        <h3>도구</h3>
+        <div class="seg wrap" id="drawTools">
+          <button type="button" class="seg-btn active" data-tool="select">선택/이동</button>
+          <button type="button" class="seg-btn" data-tool="brush">브러시</button>
+          <button type="button" class="seg-btn" data-tool="pencil">연필</button>
+          <button type="button" class="seg-btn" data-tool="marker">마커</button>
+          <button type="button" class="seg-btn" data-tool="eraser">지우개</button>
+          <button type="button" class="seg-btn" data-tool="line">선</button>
+          <button type="button" class="seg-btn" data-tool="crop">자르기</button>
+          <button type="button" class="seg-btn" data-tool="inpaint">영역 지우기</button>
+        </div>
+        <label>색 <input type="color" id="drawColor" value="#003087" /></label>
+        <label>크기 <input type="range" id="drawSize" min="1" max="80" value="8" /></label>
+        <button type="button" class="btn ghost" id="btnApplyCrop">자르기 적용</button>
+        <button type="button" class="btn ghost" id="btnInpaint">선택한 영역 자연스럽게 채우기</button>
+        <p class="mini">영역 지우기는 마스크를 칠한 뒤 버튼을 누르면 주변 색·질감으로 메웁니다.</p>
+      </div>
+
+      <div class="tab-body hidden" data-pane="text">
+        <h3>텍스트</h3>
+        <input type="text" id="textInput" placeholder="문구 입력" />
+        <label>글꼴
+          <select id="textFont">
+            <option value='"Noto Sans KR", sans-serif'>Noto Sans KR</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="Impact, sans-serif">Impact</option>
+            <option value='"Courier Prime", monospace'>Courier Prime</option>
+          </select>
+        </label>
+        <label>크기 <input type="range" id="textSize" min="12" max="160" value="42" /></label>
+        <label>색 <input type="color" id="textColor" value="#111111" /></label>
+        <button type="button" class="btn primary" id="btnAddText">텍스트 추가</button>
+        <h3>서명 (English fonts)</h3>
+        <input type="text" id="signInput" placeholder="Your Signature" />
+        <label>서명 글꼴
+          <select id="signFont">
+            <option value='"Great Vibes", cursive'>Great Vibes</option>
+            <option value='"Pacifico", cursive'>Pacifico</option>
+            <option value='"Dancing Script", cursive'>Dancing Script</option>
+            <option value='"Allura", cursive'>Allura</option>
+            <option value='"Satisfy", cursive'>Satisfy</option>
+            <option value='"Tangerine", cursive'>Tangerine</option>
+            <option value='"Sacramento", cursive'>Sacramento</option>
+            <option value='"Homemade Apple", cursive'>Homemade Apple</option>
+            <option value='"Parisienne", cursive'>Parisienne</option>
+            <option value='"Alex Brush", cursive'>Alex Brush</option>
+            <option value='"Pinyon Script", cursive'>Pinyon Script</option>
+          </select>
+        </label>
+        <label>크기 <input type="range" id="signSize" min="20" max="180" value="56" /></label>
+        <label>색 <input type="color" id="signColor" value="#1a1a1a" /></label>
+        <label>기울기 <input type="range" id="signItalic" min="-20" max="20" value="0" /></label>
+        <button type="button" class="btn primary" id="btnAddSign">서명 추가</button>
+      </div>
+
+      <div class="tab-body hidden" data-pane="fx">
+        <h3>변환</h3>
+        <div class="row">
+          <button type="button" class="btn ghost" id="btnRotL">↺ 왼쪽</button>
+          <button type="button" class="btn ghost" id="btnRotR">오른쪽 ↻</button>
+        </div>
+        <div class="row">
+          <button type="button" class="btn ghost" id="btnFlipH">좌우 반전</button>
+          <button type="button" class="btn ghost" id="btnFlipV">상하 반전</button>
+        </div>
+        <label>수평 기울기 <input type="range" id="tiltH" min="-30" max="30" value="0" /> <span id="tiltHVal">0°</span></label>
+        <label>수직 기울기 <input type="range" id="tiltV" min="-30" max="30" value="0" /> <span id="tiltVVal">0°</span></label>
+        <button type="button" class="btn ghost" id="btnTiltReset">기울기·회전 초기화</button>
+        <h3>스티커</h3>
+        <label>스티커 크기 <input type="range" id="stickerSize" min="24" max="220" value="72" /> <span id="stickerSizeVal">72px</span></label>
+        <p class="mini">스티커를 넣은 뒤 드래그로 옮기고, 모서리를 잡아 크기를 바꿀 수 있습니다.</p>
+        <div class="sticker-grid" id="stickerGrid"></div>
+        <h3>워터마크</h3>
+        <input type="text" id="wmText" placeholder="워터마크 글자" />
+        <label>글자 색 <input type="color" id="wmColor" value="#ffffff" /></label>
+        <label>글자 크기 <input type="range" id="wmSize" min="12" max="120" value="28" /></label>
+        <label>투명도 <input type="range" id="wmOpacity" min="10" max="90" value="35" /></label>
+        <label class="check"><input type="checkbox" id="wmTile" checked /> 바둑판 반복</label>
+        <button type="button" class="btn ghost" id="btnWmText">글자 워터마크 넣기</button>
+        <button type="button" class="btn ghost" id="btnWmImage">다른 사진으로 워터마크</button>
+        <input type="file" id="wmImageInput" accept="image/*" hidden />
+      </div>
+
+      <div class="tab-body hidden" data-pane="more">
+        <h3>사분할 콜라주</h3>
+        <p class="mini">최대 4장의 업로드 사진을 네 칸에 배치합니다.</p>
+        <div class="quad-pick" id="quadPick"></div>
+        <button type="button" class="btn primary" id="btnCollage">사분할 만들기</button>
+        <button type="button" class="btn primary block" id="btnProcessOne">이 사진 작업 완료</button>
+      </div>
+    </aside>
+  </main>
+
+  <div class="modal hidden" id="zipModal" role="dialog" aria-labelledby="zipTitle">
+    <div class="modal-card">
+      <h3 id="zipTitle">다운로드할 파일 선택</h3>
+      <p class="mini">받을 사진을 고른 뒤 저장 위치를 지정하세요.</p>
+      <ul class="zip-file-list" id="zipFileList"></ul>
+      <div class="row">
+        <button type="button" class="btn ghost" id="btnZipCancel">취소</button>
+        <button type="button" class="btn accent" id="btnZipConfirm">위치 지정 후 저장</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
